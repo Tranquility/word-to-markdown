@@ -87,12 +87,19 @@ class WordToMarkdown
       File.expand_path(dest_filename, tmpdir)
     end
 
+    def generate_html(filter)
+      WordToMarkdown.run_command '--convert-to', filter, path, '--outdir', tmpdir, '--headless'
+      fail ConverstionError, "Failed to convert #{path}" unless File.exist?(dest_path)
+      File.read dest_path
+    end
+
     # @return [String] the unnormalized HTML representation
     def raw_html
       @raw_html ||= begin
-        WordToMarkdown.run_command '--headless', '--convert-to', filter, path, '--outdir', tmpdir
-        fail ConverstionError, "Failed to convert #{path}" unless File.exist?(dest_path)
-        html = File.read dest_path
+        html = generate_html(filter)
+        if Nokogiri::HTML(html).css('h1').count < 1
+          html = generate_html('html')
+        end
         File.delete dest_path
         html
       end
